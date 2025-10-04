@@ -1,5 +1,12 @@
 name = "ReadWorkWriteExamples"
 version = "0.1.0"
+authors = ["Jeffrey Erlich <jerlich@gmail.com>"]
+description = "Examples of ReadWorkWrite workflows."
+license = "MIT"
+
+
+[compat]
+julia = "1.10, 1.11, 1.12, 1.13"
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
