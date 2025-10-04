@@ -1,0 +1,13 @@
+name = "ReadWorkWrite"
+uuid = "0ca60e3c-a1ff-4be2-9c1f-01d3a4e79398"
+authors = ["Jeffrey Erlich <jerlich@gmail.com>"]
+version = "0.1.0"
+description = "Efficient IO and multithreaded work separation."
+license = "MIT"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+
+[targets]
+test = ["Test", "JSON"]
