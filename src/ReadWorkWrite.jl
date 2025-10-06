@@ -12,7 +12,8 @@ Run a pipeline:
 Data flows through channels with backpressure, up to `buf` in-flight items.
 """# General form: explicit writer
 function readworkwrite(rf, wf, wrf::Function, data;
-                       nworkers=Threads.nthreads(), buf=nworkers+2, T=nothing)
+                       nworkers=Threads.nthreads(), buf=nworkers+2, T=nothing, 
+                       return_on_completion=true)
     # Type inference from first element
     if T === nothing
         first_elem = first(data)
@@ -38,26 +39,43 @@ function readworkwrite(rf, wf, wrf::Function, data;
         end
     end
 
-    @async begin
-        for d in remaining_data
-            put!(in_ch, rf(d))
+    reader = @async begin
+        try
+            for d in remaining_data
+                put!(in_ch, rf(d))
+            end
+        catch e
+            if e isa MethodError || e isa TypeError
+                throw(ArgumentError("Type mismatch detected. Your reader `rf` produces inconsistent types. Try using T=Any for heterogeneous data processing."))
+            else
+                rethrow(e)
+            end
+        finally
+            close(in_ch)
         end
-        close(in_ch)
     end
 
-    @sync begin
-        for wid in 1:nworkers
-            Threads.@spawn begin
-                for item in in_ch
-                    put!(out_ch, wf(item))
-                end
+    workers = [Threads.@spawn begin
+        try
+            for item in in_ch
+                put!(out_ch, wf(item))
+            end
+        catch e
+            if e isa MethodError || e isa TypeError
+                throw(ArgumentError("Type mismatch detected in work function. Your pipeline produces inconsistent types. Try using T=Any for heterogeneous data processing."))
+            else
+                rethrow(e)
             end
         end
+    end for _ in 1:nworkers]
+    
+    if return_on_completion
+        wait.(workers)  # Wait for all worker tasks
+        wait(writer)
+        return nothing
+    else
+        return (;in_ch, out_ch, writer, workers, reader)
     end
-
-    close(out_ch)
-    wait(writer)
-    return nothing
 end
 
 # Mutating variant: push into given vector
