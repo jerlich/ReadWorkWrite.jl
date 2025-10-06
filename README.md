@@ -1,5 +1,7 @@
 # ReadWorkWrite.jl
 
+[![CI](https://github.com/jerlich/ReadWorkWrite.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/jerlich/ReadWorkWrite.jl/actions/workflows/CI.yml)
+
 A Julia package for efficient parallel processing pipelines that separates IO-bound operations from CPU-intensive work.
 
 ## Overview
