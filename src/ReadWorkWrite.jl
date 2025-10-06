@@ -45,6 +45,7 @@ function readworkwrite(rf, wf, wrf::Function, data;
                 put!(in_ch, rf(d))
             end
         catch e
+            @debug e
             if e isa MethodError || e isa TypeError
                 throw(ArgumentError("Type mismatch detected. Your reader `rf` produces inconsistent types. Try using T=Any for heterogeneous data processing."))
             else
@@ -61,6 +62,7 @@ function readworkwrite(rf, wf, wrf::Function, data;
                 put!(out_ch, wf(item))
             end
         catch e
+            @debug e
             if e isa MethodError || e isa TypeError
                 throw(ArgumentError("Type mismatch detected in work function. Your pipeline produces inconsistent types. Try using T=Any for heterogeneous data processing."))
             else
@@ -70,9 +72,19 @@ function readworkwrite(rf, wf, wrf::Function, data;
     end for _ in 1:nworkers]
     
     if return_on_completion
-        wait.(workers)  # Wait for all worker tasks
-        close(out_ch)   # Close output channel after workers finish
-        wait(writer)    # Now writer can finish
+        try
+            wait(reader)  # Wait for reader to finish
+            wait.(workers)  # Wait for all worker tasks
+            close(out_ch)   # Close output channel after workers finish
+            wait(writer)    # Now writer can finish
+        catch e
+            if e isa TaskFailedException
+                # Unwrap the nested exception for cleaner error messages
+                rethrow(e.task.exception)
+            else
+                rethrow(e)
+            end
+        end
         return nothing
     else
         return (;in_ch, out_ch, writer, workers, reader)
@@ -82,12 +94,10 @@ end
 # Mutating variant: push into given vector
 function readworkwrite(rf, wf, results::Vector, data; kwargs...)
     readworkwrite(rf, wf, x -> push!(results, x), data; kwargs...)
-    return results
 end
 
 function workwrite(wf, results::Vector, data; kwargs...)
     readworkwrite((x)->x, wf, x -> push!(results, x), data; kwargs...)
-    return results
 end
 
 
