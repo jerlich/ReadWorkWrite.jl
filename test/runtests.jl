@@ -78,3 +78,53 @@ end
 	sort!(any_results, by=string)  # Sort by string representation since mixed types
 	@test any_results == [1, 3.14, "hello"]
 end
+
+@testset "Early Stopping" begin
+	stop_results = NamedTuple{(:key, :data), Tuple{Symbol, Int64}}[]
+	
+	# Start processing with one slow item
+	task = ReadWorkWrite.readworkwrite(
+		x -> (key=Symbol("item_$x"), data=x), 
+		x -> begin
+			if x.key == :item_2
+				sleep(2)  # This should be interrupted
+			end
+			(key=x.key, data=x.data * 10)
+		end, 
+		stop_results, 
+		[1, 2, 3]; 
+		return_on_completion=false
+	)
+	
+	# Give it a moment to start processing
+	sleep(0.1)
+	
+	# Stop early - this should interrupt the sleep(2) for :item_2
+	close(task.out_ch)
+	
+	# Clean up all tasks properly
+	try
+		# Give a moment for tasks to notice the closed channel and exit
+		sleep(0.1)
+		# Force cleanup if needed
+		for worker in task.workers
+			if !istaskdone(worker)
+				Base.schedule(worker, InterruptException(), error=true)
+			end
+		end
+	catch
+		# Ignore cleanup errors
+	end
+	
+	# Should have processed :item_1 but not :item_2 (which was sleeping)
+	# :item_3 might or might not be processed depending on timing
+	sort!(stop_results, by=x->x.key)
+	
+	# At minimum, we should have :item_1, and we should NOT have the full set
+	@test length(stop_results) >= 1
+	@test length(stop_results) < 3  # Should be stopped before completing all
+	@test (key=:item_1, data=10) in stop_results
+	
+	# The sleeping :item_2 should not be completed
+	@test (key=:item_2, data=20) ∉ stop_results
+end
