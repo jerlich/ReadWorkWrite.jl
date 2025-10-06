@@ -83,6 +83,8 @@ Execute work-write pipeline, skipping the read step.
 
 See the `examples/` directory for complete working examples including MCMC analysis with Turing.jl.
 
+For additional usage patterns and advanced features (like early stopping, type inference, and structured data handling), check out `test/runtests.jl`.
+
 ## Key Features
 
 - **Thread Safety**: IO operations remain single-threaded to avoid concurrency issues
@@ -102,4 +104,4 @@ ReadWorkWrite.jl provides a clean abstraction for this common pattern while hand
 
 ## License
 
-MIT License# Test
+MIT License
