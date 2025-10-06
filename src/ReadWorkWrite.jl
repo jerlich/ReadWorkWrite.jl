@@ -71,7 +71,8 @@ function readworkwrite(rf, wf, wrf::Function, data;
     
     if return_on_completion
         wait.(workers)  # Wait for all worker tasks
-        wait(writer)
+        close(out_ch)   # Close output channel after workers finish
+        wait(writer)    # Now writer can finish
         return nothing
     else
         return (;in_ch, out_ch, writer, workers, reader)
