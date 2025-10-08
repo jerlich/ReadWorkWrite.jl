@@ -1,7 +1,7 @@
 name = "ReadWorkWrite"
 uuid = "0ca60e3c-a1ff-4be2-9c1f-01d3a4e79398"
 authors = ["Jeffrey Erlich <jerlich@gmail.com>"]
-version = "0.1.0"
+version = "1.0.0"
 description = "Efficient IO and multithreaded work separation."
 license = "MIT"
 
