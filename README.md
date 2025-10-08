@@ -1,15 +1,25 @@
 # ReadWorkWrite.jl
 
+[![CI](https://github.com/jerlich/ReadWorkWrite.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/jerlich/ReadWorkWrite.jl/actions/workflows/CI.yml)
+
 A Julia package for efficient parallel processing pipelines that separates IO-bound operations from CPU-intensive work.
 
 ## Overview
 
 ReadWorkWrite.jl implements a pattern where:
-- **Read**: Single-threaded IO operations (loading files from disk)
+- **Read**: Single-threaded IO (loading files from disk)
 - **Work**: Multi-threaded CPU-intensive processing (e.g., MCMC sampling, data analysis)
-- **Write**: Single-threaded IO operations (writing to databases, files)
+- **Write**: Single-threaded IO (writing to databases, files)
 
-This design prevents threading issues with IO operations while maximizing parallelization for computational work.
+This design prevents threading issues with IO operations, and minimizing memory requirements, while maximizing parallelization for computational work.
+
+## Motivation
+
+I am a [neuroscientist](https://www.sainsburywellcome.org/web/groups/erlich-lab). In my work, we often need to process data in batches and these processes are CPU bound, not IO bound. For example, we might need to do model comparison on many thousands of neurons. 
+
+Other packages, like [Folds.jl](https://github.com/JuliaFolds/Folds.jl) or [ThreadsX.jl](https://github.com/tkf/ThreadsX.jl) are convenient for multi-core or multi-threaded `map` like functions. But they process an entire iterator together so if you have thousands of elements the process may be more memory intensive than is necessary.
+
+This package, ReadWorkWrite.jl, takes advantage of Base Channels and Threads to read in data _only as fast as the workers can handle them_. 
 
 ## Installation
 
@@ -56,6 +66,8 @@ readworkwrite(load_data, process_data, save_results, filenames)
 
 For complete working examples, see the `examples/` directory.
 
+For additional usage patterns and advanced features (like early stopping, type inference, and structured data handling), check out `test/runtests.jl`.
+
 ## API Reference
 
 ### `readworkwrite(readfn, workfn, writefn, data; nworkers=Threads.nthreads(), buf=nworkers+2)`
@@ -83,6 +95,7 @@ Execute work-write pipeline, skipping the read step.
 
 See the `examples/` directory for complete working examples including MCMC analysis with Turing.jl.
 
+
 ## Key Features
 
 - **Thread Safety**: IO operations remain single-threaded to avoid concurrency issues
@@ -91,15 +104,3 @@ See the `examples/` directory for complete working examples including MCMC analy
 - **Scalable**: Automatically uses available CPU threads for work processing
 - **Order Independence**: Handles unordered results from parallel processing
 
-## Design Rationale
-
-Many applications need to:
-1. Load data from files/databases (IO-bound, often not thread-safe)
-2. Perform expensive computations (CPU-bound, benefits from parallelization)
-3. Save results (IO-bound, often requires serialization)
-
-ReadWorkWrite.jl provides a clean abstraction for this common pattern while handling the complexities of thread coordination and backpressure management.
-
-## License
-
-MIT License
